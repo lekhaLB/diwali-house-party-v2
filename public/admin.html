@@ -1,17 +1,112 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>Host view</title>
-<style>body{margin:0;padding:24px;background:#1E050B;color:#FBEFD5;font:16px Georgia,serif}h1,h2{color:#D9A441;font-weight:400}table{border-collapse:collapse;width:100%}td,th{border-bottom:1px solid #5A3A2A;padding:8px;text-align:left;vertical-align:top}.g{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px}.g div{background:#2B0A12;padding:8px;border-radius:8px}.g img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:6px}button{background:#D9A441;border:0;border-radius:8px;padding:6px 10px;cursor:pointer}</style></head><body>
-<h1>Host view</h1><p id="sum"></p><div style="overflow-x:auto"><table id="t"></table></div><h2>Photos</h2><div class="g" id="g"></div>
-<script>
-let key=new URLSearchParams(location.search).get('key')||sessionStorage.getItem('k')||prompt('Admin key');sessionStorage.setItem('k',key);
-const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-async function load(){
- const r=await fetch('/api/rsvp?key='+encodeURIComponent(key));if(!r.ok){document.body.innerHTML='<p>Wrong admin key.</p>';return}
- const d=await r.json(),yes=d.filter(x=>x.status.startsWith('Yes')),n=yes.reduce((a,x)=>a+x.guests,0);
- document.getElementById('sum').textContent=d.length+' replies · '+yes.length+' yes ('+n+' guests)';
- document.getElementById('t').innerHTML='<tr><th>Name</th><th>Reply</th><th>Guests</th><th>Fit</th><th>Note</th><th>When</th></tr>'+d.map(x=>`<tr><td>${esc(x.name)}</td><td>${esc(x.status)}</td><td>${x.guests}</td><td>${esc(x.fit)}</td><td>${esc(x.note)}</td><td>${new Date(x.t).toLocaleString()}</td></tr>`).join('');
- const p=await (await fetch('/api/photos')).json();
- document.getElementById('g').innerHTML=p.map(x=>`<div><img src="/api/photos?id=${x.id}" alt=""><small>${esc(x.name)}</small><br><button data-id="${x.id}">Delete</button></div>`).join('');
-}
-document.getElementById('g').addEventListener('click',async e=>{const id=e.target.dataset.id;if(id&&confirm('Delete this photo?')){await fetch('/api/photos?id='+id+'&key='+encodeURIComponent(key),{method:'DELETE'});load()}});
-load();
-</script></body></html>
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta name="robots" content="noindex">
+    <title>Host view</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 24px;
+            background: #1E050B;
+            color: #FBEFD5;
+            font: 16px Georgia, serif
+        }
+
+        h1,
+        h2 {
+            color: #D9A441;
+            font-weight: 400
+        }
+
+        table {
+            border-collapse: collapse;
+            width: 100%
+        }
+
+        td,
+        th {
+            border-bottom: 1px solid #5A3A2A;
+            padding: 8px;
+            text-align: left;
+            vertical-align: top
+        }
+
+        .g {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+            gap: 12px
+        }
+
+        .g div {
+            background: #2B0A12;
+            padding: 8px;
+            border-radius: 8px
+        }
+
+        .g img {
+            width: 100%;
+            aspect-ratio: 1;
+            object-fit: cover;
+            border-radius: 6px
+        }
+
+        button {
+            background: #D9A441;
+            border: 0;
+            border-radius: 8px;
+            padding: 6px 10px;
+            cursor: pointer
+        }
+
+        .nl {
+            display: grid;
+            gap: 8px
+        }
+
+        .nl div {
+            background: #2B0A12;
+            padding: 10px 12px;
+            border-radius: 8px;
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+            align-items: flex-start
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Host view</h1>
+    <p id="sum"></p>
+    <div style="overflow-x:auto">
+        <table id="t"></table>
+    </div>
+    <h2>Gossip wall</h2>
+    <div class="nl" id="n"></div>
+    <h2>Photos</h2>
+    <div class="g" id="g"></div>
+    <script>
+        let key = new URLSearchParams(location.search).get('key') || sessionStorage.getItem('k') || prompt('Admin key'); sessionStorage.setItem('k', key);
+        const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+        async function load() {
+            const r = await fetch('/api/rsvp?key=' + encodeURIComponent(key)); if (!r.ok) { document.body.innerHTML = '<p>Wrong admin key.</p>'; return }
+            const d = await r.json(), yes = d.filter(x => x.status.startsWith('Yes')), n = yes.reduce((a, x) => a + x.guests, 0);
+            document.getElementById('sum').textContent = d.length + ' replies · ' + yes.length + ' yes (' + n + ' guests)';
+            document.getElementById('t').innerHTML = '<tr><th>Name</th><th>Reply</th><th>Guests</th><th>Fit</th><th>Note</th><th>When</th><th></th></tr>' + d.map(x => `<tr><td>${esc(x.name)}</td><td>${esc(x.status)}</td><td>${x.guests}</td><td>${esc(x.fit)}</td><td>${esc(x.note)}</td><td>${new Date(x.t).toLocaleString()}</td><td><button data-k="rsvp" data-id="${esc(x.id)}">Delete</button></td></tr>`).join('');
+            const nn = await (await fetch('/api/notes')).json();
+            document.getElementById('n').innerHTML = nn.length ? nn.map(x => `<div><span>${esc(x.t)} <small>— ${esc(x.n || 'Anonymous')}</small></span><button data-k="notes" data-id="${esc(x.id)}">Delete</button></div>`).join('') : '<p>No notes yet.</p>';
+            const p = await (await fetch('/api/photos')).json();
+            document.getElementById('g').innerHTML = p.map(x => `<div><img src="/api/photos?id=${x.id}" alt=""><small>${esc(x.name)}</small><br><button data-k="photos" data-id="${esc(x.id)}">Delete</button></div>`).join('');
+        }
+        document.body.addEventListener('click', async e => {
+            const b = e.target.closest('button[data-id]'); if (!b) return; if (!confirm('Delete this?')) return;
+            await fetch('/api/' + b.dataset.k + '?id=' + encodeURIComponent(b.dataset.id) + '&key=' + encodeURIComponent(key), { method: 'DELETE' }); load()
+        });
+        load();
+    </script>
+</body>
+
+</html>
